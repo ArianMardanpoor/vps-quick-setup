@@ -128,7 +128,8 @@ else
     print_error "fallparams installation failed"
     exit 1
 fi
-
+sudo cp fallparams /usr/local/bin/
+sudo chmod +x /usr/local/bin/fallparams
 fallparams -h 2>&1 | head -1 || true
 
 # ============================================================
@@ -151,7 +152,8 @@ else
     print_error "ffuf installation failed"
     exit 1
 fi
-
+sudo cp ffuf /usr/local/bin/
+sudo chmod +x /usr/local/bin/ffuf
 ffuf -V || true
 
 # ============================================================
@@ -192,17 +194,10 @@ print_success "Environment variables set ✓"
 # ============================================================
 # Step 9: nice_params installation check
 # ============================================================
-print_sep
-print_step "Step 9: Checking nice_params..."
-print_sep
-
-if [ ! -f /usr/local/bin/nice_params ] && [ ! -f ~/go/bin/nice_params ]; then
-    print_warning "nice_params not found! Compile it with:"
-    echo "    go build -o nice_params main.go"
-    echo "    sudo cp nice_params /usr/local/bin/"
-else
-    print_success "nice_params already installed ✓"
-fi
+git clone https://github.com/ArianMardanpoor/nice_params.git
+cd nice_params
+go build -o nice_params main.go
+sudo cp nice_params /usr/local/bin/ 
 
 # ============================================================
 # Summary
