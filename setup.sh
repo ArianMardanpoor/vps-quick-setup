@@ -45,43 +45,18 @@ sudo apt-get install -y -qq git ca-certificates python3 python3-venv python3-pip
 print_success "Prerequisites installed ✓"
 
 # ============================================================
-# Step 2: Install Go
+# Step 2: Check Go
 # ============================================================
 print_sep
-print_step "Step 2: Installing Go toolchain..."
+print_step "Step 2: Checking Go installation..."
 print_sep
 
 if ! command -v go &> /dev/null; then
-    GO_VERSION="1.23.4"
-    GO_URL="https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
-    GO_TAR="/tmp/go${GO_VERSION}.linux-amd64.tar.gz"
-    
-    print_step "Downloading Go from ${GO_URL}"
-    curl -fsSL --retry 3 "${GO_URL}" -o "${GO_TAR}"
-    
-    # Verify it's a valid gzip file
-    if ! file "${GO_TAR}" | grep -q "gzip compressed"; then
-        print_error "Downloaded file is not a valid gzip archive"
-        print_step "Trying alternative download method..."
-        wget -q --tries=3 "${GO_URL}" -O "${GO_TAR}"
-        if ! file "${GO_TAR}" | grep -q "gzip compressed"; then
-            print_error "Failed to download valid Go archive"
-            exit 1
-        fi
-    fi
-    
-    print_step "Extracting Go to /usr/local..."
-    sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf "${GO_TAR}"
-    rm -f "${GO_TAR}"
-    
-    export PATH="$PATH:/usr/local/go/bin"
-    echo 'export PATH="$PATH:/usr/local/go/bin"' | sudo tee /etc/profile.d/golang.sh > /dev/null
-    echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
-    
-    print_success "Go ${GO_VERSION} installed ✓"
+    print_error "Go is not installed. Please install it first:"
+    echo "    sudo apt-get install -y golang-go"
+    exit 1
 else
-    print_success "Go already installed: $(go version) ✓"
+    print_success "Go found: $(go version) ✓"
 fi
 
 export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
@@ -127,7 +102,6 @@ print_sep
 print_step "Step 5: Installing fallparams..."
 print_sep
 
-# Ensure GOPATH is set
 export GOPATH="$HOME/go"
 export PATH="$PATH:$GOPATH/bin"
 
@@ -233,9 +207,7 @@ print_success "All tools installed successfully! ✨"
 print_sep
 echo ""
 echo "Installed tools:"
-if command -v go &> /dev/null; then
-    echo "   ✓ Go         → $(go version)"
-fi
+echo "   ✓ Go         → $(go version)"
 echo "   ✓ x8         → $(which x8 2>/dev/null || echo '/usr/local/bin/x8')"
 echo "   ✓ fallparams → $(which fallparams 2>/dev/null || echo '/usr/local/bin/fallparams')"
 echo "   ✓ ffuf       → $(which ffuf 2>/dev/null || echo '/usr/local/bin/ffuf')"

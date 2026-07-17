@@ -1,6 +1,7 @@
 ```
 sudo apt update
 sudo apt install git -y
+sudo apt-get install -y golang-go
 git clone https://github.com/ArianMardanpoor/vps-quick-setup.git
 cd vps-quick-setup
 chmod +x setup.sh
