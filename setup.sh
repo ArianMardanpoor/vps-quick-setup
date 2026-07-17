@@ -53,19 +53,38 @@ print_sep
 
 if ! command -v go &> /dev/null; then
     GO_VERSION="1.23.4"
-    curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+    GO_URL="https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+    GO_TAR="/tmp/go${GO_VERSION}.linux-amd64.tar.gz"
+    
+    print_step "Downloading Go from ${GO_URL}"
+    curl -fsSL --retry 3 "${GO_URL}" -o "${GO_TAR}"
+    
+    # Verify it's a valid gzip file
+    if ! file "${GO_TAR}" | grep -q "gzip compressed"; then
+        print_error "Downloaded file is not a valid gzip archive"
+        print_step "Trying alternative download method..."
+        wget -q --tries=3 "${GO_URL}" -O "${GO_TAR}"
+        if ! file "${GO_TAR}" | grep -q "gzip compressed"; then
+            print_error "Failed to download valid Go archive"
+            exit 1
+        fi
+    fi
+    
+    print_step "Extracting Go to /usr/local..."
     sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf /tmp/go.tar.gz
-    rm /tmp/go.tar.gz
+    sudo tar -C /usr/local -xzf "${GO_TAR}"
+    rm -f "${GO_TAR}"
+    
     export PATH="$PATH:/usr/local/go/bin"
     echo 'export PATH="$PATH:/usr/local/go/bin"' | sudo tee /etc/profile.d/golang.sh > /dev/null
     echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
+    
     print_success "Go ${GO_VERSION} installed ✓"
 else
     print_success "Go already installed: $(go version) ✓"
 fi
 
-export PATH="$PATH:/usr/local/go/bin"
+export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 
 # ============================================================
 # Step 3: Install Rust (for x8)
@@ -108,7 +127,10 @@ print_sep
 print_step "Step 5: Installing fallparams..."
 print_sep
 
-export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
+# Ensure GOPATH is set
+export GOPATH="$HOME/go"
+export PATH="$PATH:$GOPATH/bin"
+
 go install github.com/ImAyrix/fallparams@latest
 
 FALLPATH=$(find "$HOME/go/bin" -name "fallparams" 2>/dev/null | head -1)
@@ -211,7 +233,9 @@ print_success "All tools installed successfully! ✨"
 print_sep
 echo ""
 echo "Installed tools:"
-echo "   ✓ Go         → $(go version)"
+if command -v go &> /dev/null; then
+    echo "   ✓ Go         → $(go version)"
+fi
 echo "   ✓ x8         → $(which x8 2>/dev/null || echo '/usr/local/bin/x8')"
 echo "   ✓ fallparams → $(which fallparams 2>/dev/null || echo '/usr/local/bin/fallparams')"
 echo "   ✓ ffuf       → $(which ffuf 2>/dev/null || echo '/usr/local/bin/ffuf')"
