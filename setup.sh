@@ -40,15 +40,15 @@ print_step "Step 1: Updating system and installing prerequisites..."
 print_sep
 
 sudo apt-get update -qq
-sudo apt-get install -y -qq git ca-certificates python3 python3-venv python3-pip curl wget build-essential pkg-config libssl-dev
+sudo apt-get install -y -qq git ca-certificates python3 python3-pip curl wget build-essential pkg-config libssl-dev
 
 print_success "Prerequisites installed ✓"
 
 # ============================================================
-# Step 2: Check Go
+# Step 2: Check Go & set proxy
 # ============================================================
 print_sep
-print_step "Step 2: Checking Go installation..."
+print_step "Step 2: Checking Go installation and setting proxy..."
 print_sep
 
 if ! command -v go &> /dev/null; then
@@ -59,7 +59,19 @@ else
     print_success "Go found: $(go version) ✓"
 fi
 
-export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
+# Set Go proxy for faster downloads
+export GOPROXY="https://mirror-go.runflare.com,direct"
+export GOPATH="$HOME/go"
+export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
+
+# Add to bashrc for persistence
+if ! grep -q "GOPROXY" ~/.bashrc 2>/dev/null; then
+    echo 'export GOPROXY="https://mirror-go.runflare.com,direct"' >> ~/.bashrc
+    echo 'export GOPATH="$HOME/go"' >> ~/.bashrc
+    echo 'export PATH="$PATH:$GOPATH/bin"' >> ~/.bashrc
+fi
+
+print_success "Go proxy configured: $GOPROXY ✓"
 
 # ============================================================
 # Step 3: Install Rust (for x8)
@@ -102,9 +114,7 @@ print_sep
 print_step "Step 5: Installing fallparams..."
 print_sep
 
-export GOPATH="$HOME/go"
-export PATH="$PATH:$GOPATH/bin"
-
+export GOPROXY="https://mirror-go.runflare.com,direct"
 go install github.com/ImAyrix/fallparams@latest
 
 FALLPATH=$(find "$HOME/go/bin" -name "fallparams" 2>/dev/null | head -1)
@@ -132,8 +142,9 @@ if [ -d "/tmp/ffuf-build" ]; then
     rm -rf /tmp/ffuf-build
 fi
 
+export GOPROXY="https://mirror-go.runflare.com,direct"
 git clone https://github.com/ffuf/ffuf /tmp/ffuf-build
-(cd /tmp/ffuf-build && go get && go build)
+(cd /tmp/ffuf-build && go mod download && go build)
 sudo cp /tmp/ffuf-build/ffuf /usr/local/bin/
 rm -rf /tmp/ffuf-build
 
@@ -153,10 +164,7 @@ print_sep
 print_step "Step 7: Installing dirsearch..."
 print_sep
 
-python3 -m venv ~/.venvs/dirsearch
-source ~/.venvs/dirsearch/bin/activate
-python -m pip install --upgrade pip -q
-python -m pip install "git+https://github.com/maurosoria/dirsearch.git" -q
+pip3 install git+https://github.com/maurosoria/dirsearch.git --break-system-packages --ignore-installed requests
 
 print_success "dirsearch installed ✓"
 dirsearch --version || true
@@ -208,10 +216,11 @@ print_sep
 echo ""
 echo "Installed tools:"
 echo "   ✓ Go         → $(go version)"
+echo "   ✓ Go Proxy   → $GOPROXY"
 echo "   ✓ x8         → $(which x8 2>/dev/null || echo '/usr/local/bin/x8')"
 echo "   ✓ fallparams → $(which fallparams 2>/dev/null || echo '/usr/local/bin/fallparams')"
 echo "   ✓ ffuf       → $(which ffuf 2>/dev/null || echo '/usr/local/bin/ffuf')"
-echo "   ✓ dirsearch  → ~/.venvs/dirsearch/bin/dirsearch"
+echo "   ✓ dirsearch  → $(which dirsearch 2>/dev/null || echo 'installed via pip3')"
 echo "   ✓ wordlist   → $HOME/wordlist/param.txt"
 echo ""
 echo "Next steps:"
@@ -221,8 +230,9 @@ echo "   2. Compile nice_params:"
 echo "      go build -o nice_params main.go"
 echo "      sudo cp nice_params /usr/local/bin/"
 echo ""
-echo "   3. Environment variable set:"
+echo "   3. Environment variables:"
 echo "      export X8_WORDLIST_PATH=\"$HOME/wordlist/param.txt\""
+echo "      export GOPROXY=\"https://mirror-go.runflare.com,direct\""
 echo ""
 
 source ~/.bashrc 2>/dev/null || true
