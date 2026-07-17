@@ -45,10 +45,33 @@ sudo apt-get install -y -qq git ca-certificates python3 python3-venv python3-pip
 print_success "Prerequisites installed ✓"
 
 # ============================================================
-# Step 2: Install Rust (for x8)
+# Step 2: Install Go
 # ============================================================
 print_sep
-print_step "Step 2: Installing Rust (for x8 compilation)..."
+print_step "Step 2: Installing Go toolchain..."
+print_sep
+
+if ! command -v go &> /dev/null; then
+    GO_VERSION="1.23.4"
+    curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+    rm /tmp/go.tar.gz
+    export PATH="$PATH:/usr/local/go/bin"
+    echo 'export PATH="$PATH:/usr/local/go/bin"' | sudo tee /etc/profile.d/golang.sh > /dev/null
+    echo 'export PATH="$PATH:/usr/local/go/bin"' >> ~/.bashrc
+    print_success "Go ${GO_VERSION} installed ✓"
+else
+    print_success "Go already installed: $(go version) ✓"
+fi
+
+export PATH="$PATH:/usr/local/go/bin"
+
+# ============================================================
+# Step 3: Install Rust (for x8)
+# ============================================================
+print_sep
+print_step "Step 3: Installing Rust (for x8 compilation)..."
 print_sep
 
 if ! command -v cargo &> /dev/null; then
@@ -60,10 +83,10 @@ else
 fi
 
 # ============================================================
-# Step 3: Install x8
+# Step 4: Install x8
 # ============================================================
 print_sep
-print_step "Step 3: Installing x8..."
+print_step "Step 4: Installing x8..."
 print_sep
 
 if command -v x8 &> /dev/null; then
@@ -79,22 +102,13 @@ print_success "x8 installed ✓"
 x8 --version || true
 
 # ============================================================
-# Step 4: Install fallparams
+# Step 5: Install fallparams
 # ============================================================
 print_sep
-print_step "Step 4: Installing fallparams..."
+print_step "Step 5: Installing fallparams..."
 print_sep
 
-if ! command -v go &> /dev/null; then
-    print_warning "Go not found, installing..."
-    wget -q https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
-    sudo tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz
-    rm go1.21.5.linux-amd64.tar.gz
-    export PATH=$PATH:/usr/local/go/bin
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-fi
-
-export PATH=$PATH:/usr/local/go/bin
+export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 go install github.com/ImAyrix/fallparams@latest
 
 FALLPATH=$(find "$HOME/go/bin" -name "fallparams" 2>/dev/null | head -1)
@@ -102,14 +116,20 @@ if [ -n "$FALLPATH" ]; then
     sudo cp "$FALLPATH" /usr/local/bin/ 2>/dev/null || true
 fi
 
-print_success "fallparams installed ✓"
+if command -v fallparams &> /dev/null; then
+    print_success "fallparams installed ✓"
+else
+    print_error "fallparams installation failed"
+    exit 1
+fi
+
 fallparams -h 2>&1 | head -1 || true
 
 # ============================================================
-# Step 5: Install ffuf
+# Step 6: Install ffuf
 # ============================================================
 print_sep
-print_step "Step 5: Installing ffuf..."
+print_step "Step 6: Installing ffuf..."
 print_sep
 
 if [ -d "/tmp/ffuf-build" ]; then
@@ -121,14 +141,20 @@ git clone https://github.com/ffuf/ffuf /tmp/ffuf-build
 sudo cp /tmp/ffuf-build/ffuf /usr/local/bin/
 rm -rf /tmp/ffuf-build
 
-print_success "ffuf installed ✓"
+if command -v ffuf &> /dev/null; then
+    print_success "ffuf installed ✓"
+else
+    print_error "ffuf installation failed"
+    exit 1
+fi
+
 ffuf -V || true
 
 # ============================================================
-# Step 6: Install dirsearch
+# Step 7: Install dirsearch
 # ============================================================
 print_sep
-print_step "Step 6: Installing dirsearch..."
+print_step "Step 7: Installing dirsearch..."
 print_sep
 
 python3 -m venv ~/.venvs/dirsearch
@@ -140,10 +166,10 @@ print_success "dirsearch installed ✓"
 dirsearch --version || true
 
 # ============================================================
-# Step 7: Clone wordlist
+# Step 8: Clone wordlist
 # ============================================================
 print_sep
-print_step "Step 7: Fetching wordlist for nice_params..."
+print_step "Step 8: Fetching wordlist for nice_params..."
 print_sep
 
 if [ -d "$HOME/wordlist" ]; then
@@ -163,10 +189,10 @@ fi
 print_success "Environment variables set ✓"
 
 # ============================================================
-# Step 8: nice_params installation check
+# Step 9: nice_params installation check
 # ============================================================
 print_sep
-print_step "Step 8: Checking nice_params..."
+print_step "Step 9: Checking nice_params..."
 print_sep
 
 if [ ! -f /usr/local/bin/nice_params ] && [ ! -f ~/go/bin/nice_params ]; then
@@ -185,6 +211,7 @@ print_success "All tools installed successfully! ✨"
 print_sep
 echo ""
 echo "Installed tools:"
+echo "   ✓ Go         → $(go version)"
 echo "   ✓ x8         → $(which x8 2>/dev/null || echo '/usr/local/bin/x8')"
 echo "   ✓ fallparams → $(which fallparams 2>/dev/null || echo '/usr/local/bin/fallparams')"
 echo "   ✓ ffuf       → $(which ffuf 2>/dev/null || echo '/usr/local/bin/ffuf')"
@@ -192,14 +219,14 @@ echo "   ✓ dirsearch  → ~/.venvs/dirsearch/bin/dirsearch"
 echo "   ✓ wordlist   → $HOME/wordlist/param.txt"
 echo ""
 echo "Next steps:"
-echo "   1. Compile nice_params:"
+echo "   1. Reload shell: source ~/.bashrc"
+echo ""
+echo "   2. Compile nice_params:"
 echo "      go build -o nice_params main.go"
 echo "      sudo cp nice_params /usr/local/bin/"
 echo ""
-echo "   2. Environment variable set:"
+echo "   3. Environment variable set:"
 echo "      export X8_WORDLIST_PATH=\"$HOME/wordlist/param.txt\""
-echo ""
-echo "   3. Reload shell: source ~/.bashrc"
 echo ""
 
 source ~/.bashrc 2>/dev/null || true
