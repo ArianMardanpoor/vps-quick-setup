@@ -59,7 +59,8 @@ else
     print_success "Go found: $(go version) ✓"
 fi
 
-# Set Go proxy for faster downloads
+# Set Go proxy permanently
+go env -w GOPROXY="https://mirror-go.runflare.com,direct"
 export GOPROXY="https://mirror-go.runflare.com,direct"
 export GOPATH="$HOME/go"
 export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
@@ -71,7 +72,7 @@ if ! grep -q "GOPROXY" ~/.bashrc 2>/dev/null; then
     echo 'export PATH="$PATH:$GOPATH/bin"' >> ~/.bashrc
 fi
 
-print_success "Go proxy configured: $GOPROXY ✓"
+print_success "Go proxy configured: $(go env GOPROXY) ✓"
 
 # ============================================================
 # Step 3: Install Rust (for x8)
@@ -114,7 +115,6 @@ print_sep
 print_step "Step 5: Installing fallparams..."
 print_sep
 
-export GOPROXY="https://mirror-go.runflare.com,direct"
 go install github.com/ImAyrix/fallparams@latest
 
 FALLPATH=$(find "$HOME/go/bin" -name "fallparams" 2>/dev/null | head -1)
@@ -132,21 +132,18 @@ fi
 fallparams -h 2>&1 | head -1 || true
 
 # ============================================================
-# Step 6: Install ffuf
+# Step 6: Install ffuf (using go install)
 # ============================================================
 print_sep
 print_step "Step 6: Installing ffuf..."
 print_sep
 
-if [ -d "/tmp/ffuf-build" ]; then
-    rm -rf /tmp/ffuf-build
-fi
+go install github.com/ffuf/ffuf/v2@latest
 
-export GOPROXY="https://mirror-go.runflare.com,direct"
-git clone https://github.com/ffuf/ffuf /tmp/ffuf-build
-(cd /tmp/ffuf-build && go mod download && go build)
-sudo cp /tmp/ffuf-build/ffuf /usr/local/bin/
-rm -rf /tmp/ffuf-build
+FFUFPATH=$(find "$HOME/go/bin" -name "ffuf" 2>/dev/null | head -1)
+if [ -n "$FFUFPATH" ]; then
+    sudo cp "$FFUFPATH" /usr/local/bin/ 2>/dev/null || true
+fi
 
 if command -v ffuf &> /dev/null; then
     print_success "ffuf installed ✓"
@@ -216,7 +213,7 @@ print_sep
 echo ""
 echo "Installed tools:"
 echo "   ✓ Go         → $(go version)"
-echo "   ✓ Go Proxy   → $GOPROXY"
+echo "   ✓ Go Proxy   → $(go env GOPROXY)"
 echo "   ✓ x8         → $(which x8 2>/dev/null || echo '/usr/local/bin/x8')"
 echo "   ✓ fallparams → $(which fallparams 2>/dev/null || echo '/usr/local/bin/fallparams')"
 echo "   ✓ ffuf       → $(which ffuf 2>/dev/null || echo '/usr/local/bin/ffuf')"
@@ -232,7 +229,7 @@ echo "      sudo cp nice_params /usr/local/bin/"
 echo ""
 echo "   3. Environment variables:"
 echo "      export X8_WORDLIST_PATH=\"$HOME/wordlist/param.txt\""
-echo "      export GOPROXY=\"https://mirror-go.runflare.com,direct\""
+echo "      GOPROXY=$(go env GOPROXY)"
 echo ""
 
 source ~/.bashrc 2>/dev/null || true
