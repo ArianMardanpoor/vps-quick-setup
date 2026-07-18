@@ -58,6 +58,7 @@ cargo build --release
 sudo cp ./target/release/x8 /usr/local/bin/
 rm -rf /tmp/x8-build
 x8 --version
+cd
 ```
 
 ### 4.2. Install fallparams
