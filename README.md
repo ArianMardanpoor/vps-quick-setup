@@ -21,17 +21,21 @@ sudo apt-get install -y -qq git ca-certificates python3 python3-pip curl wget bu
 ```
 
 ## Step 2: Configure Go Environment
-Set up the Go workspace and configure a proxy to ensure smooth module downloads (especially useful for restricted networks).
+Set up the Go workspace and configure the default proxy to ensure smooth module downloads without timeout issues.
 
 ```bash
 # Set Go environment variables
 export GOPATH="$HOME/go"
 export PATH="$PATH:/usr/local/go/bin:$GOPATH/bin"
 
-# Set proxy (Runflare mirror) and persist configurations
-go env -w GOPROXY="https://mirror-go.runflare.com,direct"
+# Set default Go proxy
+go env -w GOPROXY="https://proxy.golang.org,direct"
 
-echo 'export GOPROXY="https://mirror-go.runflare.com,direct"' >> ~/.bashrc
+# Fix any old proxy configurations in bashrc
+sed -i 's/mirror-go.runflare.com/proxy.golang.org/g' ~/.bashrc 2>/dev/null || true
+
+# Persist configurations
+echo 'export GOPROXY="https://proxy.golang.org,direct"' >> ~/.bashrc
 echo 'export GOPATH="$HOME/go"' >> ~/.bashrc
 echo 'export PATH="$PATH:$GOPATH/bin"' >> ~/.bashrc
 
@@ -58,7 +62,6 @@ cargo build --release
 sudo cp ./target/release/x8 /usr/local/bin/
 rm -rf /tmp/x8-build
 x8 --version
-cd
 ```
 
 ### 4.2. Install fallparams
